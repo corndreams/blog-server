@@ -3,7 +3,7 @@ const config={
   datebase:{
     "username": "root",
     "password": "root",
-    "database": "bolg",
+    "database": "blog",
     "host": "127.0.0.1",
     "dialect": "mysql",
     "timezone": "+08:00"

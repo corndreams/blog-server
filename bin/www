@@ -7,6 +7,7 @@
 var app = require('../app');
 var debug = require('debug')('blog-server:server');
 var http = require('http');
+var db = require('../models/db'); // 引入数据库模块
 
 /**
  * Get port from environment and store in Express.
@@ -22,12 +23,23 @@ app.set('port', port);
 var server = http.createServer(app);
 
 /**
- * Listen on provided port, on all network interfaces.
+ * Initialize database before starting the server
  */
 
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
+// 初始化数据库
+db.init().then(() => {
+  console.log('数据库初始化完成，开始启动服务器...');
+  
+  /**
+   * Listen on provided port, on all network interfaces.
+   */
+  server.listen(port);
+  server.on('error', onError);
+  server.on('listening', onListening);
+}).catch(err => {
+  console.error('数据库初始化失败，无法启动服务器:', err);
+  process.exit(1);
+});
 
 /**
  * Normalize a port into a number, string, or false.
