@@ -1,12 +1,30 @@
 const mysql = require("mysql2");
 const config = require("../config/default");
+const usersTable = require("./schema/users");
+const categoriesTable = require("./schema/categories");
+const tagsTable = require("./schema/tags");
+const {
+  articles: articlesTable,
+  articleTags: articleTagsTable,
+} = require("./schema/articles");
+const commentsTable = require("./schema/comments");
+const messagesTable = require("./schema/messages");
+const userInfoTable = require("./schema/user_info");
+const filesTable = require("./schema/files");
+const diariesTable = require("./schema/diaries");
+const visitsTable = require("./schema/visits");
+const linksTable = require("./schema/links");
 
 // 创建不带数据库名的连接，用于创建数据库
 const initialConnection = mysql.createConnection({
   host: config.datebase.host,
   user: config.datebase.username,
   password: config.datebase.password,
+  timezone: '+08:00',
+  dateStrings: true,
 });
+
+initialConnection.query(`SET time_zone = '${config.datebase.timezone || "+08:00"}'`);
 
 // 直接链接，用于创建数据库
 let query = (sql, values) => {
@@ -27,6 +45,8 @@ const pool = mysql.createPool({
   user: config.datebase.username,
   password: config.datebase.password,
   database: config.datebase.database,
+  timezone: '+08:00',
+  dateStrings: true,
 });
 
 // 通过 pool.getConnection 获得链接
@@ -36,167 +56,255 @@ let queryPool = (sql, values) => {
       if (err) {
         reject(err);
       } else {
-        connection.query(sql, values, (err, rows) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(rows);
-          }
-          connection.release(); // 释放该链接，把该链接放回池里供其他人使用
-          // connection.destroy(); // 如果要关闭连接并将其从池中删除，请改用connection.destroy
+        connection.query(`SET time_zone = '${config.datebase.timezone || "+08:00"}'`, () => {
+          connection.query(sql, values, (err, rows) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(rows);
+            }
+            connection.release();
+          });
         });
       }
     });
   });
 };
 
-let blog =
-  "create database if not exists blog default charset utf8 collate utf8_general_ci";
+let createDbSql = `create database if not exists ${config.datebase.database} default charset utf8mb4 collate utf8mb4_general_ci`;
 
 let createDatebase = () => {
-  return query(blog, []);
+  return query(createDbSql, []);
 };
 
-//用户
-let users = `create table if not exists users(
-     id INT NOT NULL AUTO_INCREMENT,
-     name VARCHAR(100) NOT NULL COMMENT '用户名',
-     web VARCHAR(100) COMMENT '网站',
-     mail VARCHAR(100) COMMENT '邮箱',
-     password VARCHAR(100) NOT NULL COMMENT '密码',
-     moment VARCHAR(100) NOT NULL COMMENT '时间',
-     imgurl VARCHAR(100) COMMENT '头像地址',
-     PRIMARY KEY ( id )
-    );`;
-
-//分类
-let subset = `create table if not exists subset(
-     id INT NOT NULL AUTO_INCREMENT,
-     subset_name VARCHAR(100) NOT NULL COMMENT '分类名称',
-     classify INT NOT NULL COMMENT '类型0文章，1图片，2资源',
-     moment VARCHAR(100) NOT NULL COMMENT '时间',
-     PRIMARY KEY ( id )
-    );`;
-
-//文件
-let file = `create table if not exists file(
-     id INT NOT NULL AUTO_INCREMENT,
-     url VARCHAR(100) NOT NULL COMMENT '地址',
-     file_name VARCHAR(100) NOT NULL COMMENT '名称',
-     format VARCHAR(32) NOT NULL COMMENT '格式',
-     subset_id INT COMMENT '所属分类',
-     moment VARCHAR(100) NOT NULL COMMENT '时间',
-     PRIMARY KEY ( id )
-    );`;
-
-//文章
-let article = `create table if not exists article(
-     id INT NOT NULL AUTO_INCREMENT,
-     title VARCHAR(200) NOT NULL COMMENT '标题',
-     subset_id INT COMMENT '所属分类',
-     classify INT NOT NULL COMMENT '类型0文章，1图片',
-     label VARCHAR(200) COMMENT '标签',
-     introduce VARCHAR(1000) COMMENT '简介',
-     content VARCHAR(5000) COMMENT '内容',
-     cover VARCHAR(100) COMMENT '封面地址',
-     views INT DEFAULT 0 COMMENT '查看次数',
-     state INT DEFAULT 0 COMMENT '文章状态',
-     moment VARCHAR(100) NOT NULL COMMENT '时间',
-     PRIMARY KEY ( id )
-    );`;
-
-//点赞
-let praise = `create table if not exists praise(
-     id INT NOT NULL AUTO_INCREMENT,
-     user_id VARCHAR(100) NOT NULL COMMENT '用户',
-     user_type INT NOT NULL COMMENT '查看次数',
-     article_id INT  NOT NULL COMMENT '所属文章',
-     moment VARCHAR(100) NOT NULL COMMENT '时间',
-     PRIMARY KEY ( id )
-    );`;
-
-//评论
-let comment = `create table if not exists comment(
-     id INT NOT NULL AUTO_INCREMENT,
-     user_id VARCHAR(100) NOT NULL COMMENT '用户',
-     user_type INT NOT NULL COMMENT '用户类型',
-     user_name VARCHAR(100) COMMENT '用户名称',
-     article_id INT  NOT NULL COMMENT '所属文章',
-     moment VARCHAR(100) NOT NULL COMMENT '时间',
-     content VARCHAR(1000) NOT NULL COMMENT '内容',
-     complaint INT DEFAULT 0 COMMENT '举报次数',
-     isread INT DEFAULT 0 COMMENT '是否已读',
-     PRIMARY KEY ( id )
-    );`;
-//标签
-let label = `create table if not exists label(
-     id INT NOT NULL AUTO_INCREMENT,
-     label_name VARCHAR(100) NOT NULL COMMENT '名称',
-     moment VARCHAR(100) NOT NULL COMMENT '时间',
-     PRIMARY KEY ( id )
-    );`;
-//日记
-let diary = `create table if not exists diary(
-     id INT NOT NULL AUTO_INCREMENT,
-     title VARCHAR(200) NOT NULL COMMENT '标题',
-     content VARCHAR(5000) NOT NULL COMMENT '内容',
-     picture VARCHAR(500) COMMENT '图片地址',
-     weather_id INT COMMENT '天气',
-     mood INT DEFAULT 0 COMMENT '心情',
-     moment VARCHAR(100) NOT NULL COMMENT '时间',
-     PRIMARY KEY ( id )
-    );`;
-//天气
-let weather = `create table if not exists weather(
-     id INT NOT NULL AUTO_INCREMENT,
-     weather_name VARCHAR(32) NOT NULL COMMENT '名称',
-     icon VARCHAR(100) COMMENT '图标',
-     PRIMARY KEY ( id )
-    );`;
-//消息
-let message = `create table if not exists message(
-     id INT NOT NULL AUTO_INCREMENT,
-     user_id VARCHAR(100) NOT NULL COMMENT '用户',
-     user_type INT NOT NULL COMMENT '用户类型',
-     user_name VARCHAR(100) COMMENT '用户名称',
-     moment VARCHAR(100) NOT NULL COMMENT '时间',
-     content VARCHAR(1000) NOT NULL COMMENT '内容',
-     isread INT DEFAULT 0 COMMENT '是否已读',
-     PRIMARY KEY ( id )
-    );`;
-//用户
-let record = `create table if not exists record(
-     id INT NOT NULL AUTO_INCREMENT,
-     user_id VARCHAR(100) NOT NULL COMMENT '用户',
-     user_type INT NOT NULL COMMENT '用户类型',
-     position VARCHAR(100) COMMENT '位置',
-     isread INT DEFAULT 0 COMMENT '设备',
-     moment VARCHAR(100) NOT NULL COMMENT '时间',
-     PRIMARY KEY ( id )
-    );`;
+const tableSqlList = [
+  usersTable,
+  categoriesTable,
+  tagsTable,
+  articlesTable,
+  articleTagsTable,
+  commentsTable,
+  messagesTable,
+  userInfoTable,
+  filesTable,
+  diariesTable,
+  visitsTable,
+  linksTable,
+];
 
 const createTable = async () => {
   try {
-    // 先创建数据库
-    await createDatebase(blog);
-    
-    // 使用连接池执行表创建操作
-    await queryPool(users, []);
-    await queryPool(subset, []);
-    await queryPool(file, []);
-    await queryPool(article, []);
-    await queryPool(praise, []);
-    await queryPool(comment, []);
-    await queryPool(label, []);
-    await queryPool(diary, []);
-    await queryPool(weather, []);
-    await queryPool(message, []);
-    await queryPool(record, []);
-    
-    console.log('数据库和表创建成功');
-    return '创建成功';
+    await createDatebase();
+    for (const sql of tableSqlList) {
+      await queryPool(sql, []);
+    }
+    console.log("数据库和表创建成功");
+    return "创建成功";
   } catch (error) {
-    console.error('创建数据库或表时出错:', error);
+    console.error("创建数据库或表时出错:", error);
+    throw error;
+  }
+};
+
+const ensureColumns = async () => {
+  const dbName = config.datebase.database;
+  const colExists = async (table, column) => {
+    const rows = await queryPool(
+      `select count(*) as cnt from information_schema.columns where table_schema=? and table_name=? and column_name=?`,
+      [dbName, table, column]
+    );
+    return rows[0].cnt > 0;
+  };
+  if (!(await colExists('tags', 'description'))) {
+    await queryPool(`alter table tags add column description text`, []);
+  }
+  if (!(await colExists('tags', 'updated_at'))) {
+    await queryPool(`alter table tags add column updated_at datetime null`, []);
+  }
+  if (!(await colExists('categories', 'updated_at'))) {
+    await queryPool(`alter table categories add column updated_at datetime null`, []);
+  }
+  if (!(await colExists('comments', 'link'))) {
+    await queryPool(`alter table comments add column link varchar(255) null`, []);
+  }
+  if (!(await colExists('comments', 'ip'))) {
+    await queryPool(`alter table comments add column ip varchar(64) null`, []);
+  }
+  if (!(await colExists('comments', 'avatar'))) {
+    await queryPool(`alter table comments add column avatar varchar(255) null`, []);
+  }
+  if (!(await colExists('comments', 'updated_at'))) {
+    await queryPool(`alter table comments add column updated_at datetime null`, []);
+  }
+  if (!(await colExists('messages', 'ip'))) {
+    await queryPool(`alter table messages add column ip varchar(64) null`, []);
+  }
+  if (!(await colExists('diaries', 'state'))) {
+    await queryPool(`alter table diaries add column state int default 0`, []);
+  }
+  if (!(await colExists('diaries', 'views'))) {
+    await queryPool(`alter table diaries add column views int default 0`, []);
+  }
+  if (!(await colExists('diaries', 'diary_time'))) {
+    await queryPool(`alter table diaries add column diary_time datetime null`, []);
+  }
+  if (!(await colExists('visits', 'user_agent'))) {
+    await queryPool(`alter table visits add column user_agent varchar(255) null`, []);
+  }
+  if (!(await colExists('visits', 'device'))) {
+    await queryPool(`alter table visits add column device varchar(64) null`, []);
+  }
+};
+
+// 创建默认管理员账户
+const createDefaultAdmin = async () => {
+  try {
+    const checkSql = `select * from users`;
+    const users = await queryPool(checkSql);
+    if (!users || users.length === 0) {
+      const defaultAdmin = {
+        name: "admin",
+        password: "123456", // 建议使用更强的密码并在生产环境中加密
+        moment: new Date().toISOString(),
+      };
+      const sql = `insert into users(name, password, moment) values(?, ?, NOW())`;
+      const values = [defaultAdmin.name, defaultAdmin.password];
+      await queryPool(sql, values);
+      console.log("默认管理员账户创建成功");
+    } else {
+      console.log("管理员账户已存在，跳过创建");
+    }
+  } catch (error) {
+    console.error("创建默认管理员账户失败:", error);
+    throw error;
+  }
+};
+
+const seedInitialData = async () => {
+  try {
+    const [{ count: catCount }] = await queryPool(
+      `select count(*) as count from categories`
+    );
+    if (catCount === 0) {
+      const cats = [
+        ["随笔", "suibi"],
+        ["技术", "tech"],
+        ["生活", "life"],
+      ];
+      for (const [name, slug] of cats) {
+        await queryPool(
+          `insert into categories(name, slug, created_at) values(?, ?, NOW())`,
+          [name, slug]
+        );
+      }
+    }
+
+    const [{ count: tagCount }] = await queryPool(
+      `select count(*) as count from tags`
+    );
+    if (tagCount === 0) {
+      const tags = [
+        ["JavaScript", "javascript"],
+        ["Node.js", "nodejs"],
+        ["数据库", "database"],
+      ];
+      for (const [name, slug] of tags) {
+        await queryPool(
+          `insert into tags(name, slug, created_at) values(?, ?, NOW())`,
+          [name, slug]
+        );
+      }
+    }
+
+    const [{ count: artCount }] = await queryPool(
+      `select count(*) as count from articles`
+    );
+    if (artCount === 0) {
+      const adminRows = await queryPool(
+        `select id from users where name=? limit 1`,
+        ["admin"]
+      );
+      const authorId = adminRows.length > 0 ? adminRows[0].id : null;
+      const catRows = await queryPool(
+        `select id from categories order by id asc limit 1`
+      );
+      const categoryId = catRows.length > 0 ? catRows[0].id : null;
+      const insertArticleSql = `insert into articles(title, category_id, author_id, introduce, content, cover, views, state, created_at) values(?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
+      const insertArticleValues = [
+        "欢迎来到我的博客",
+        categoryId,
+        authorId,
+        "这是博客的第一篇文章简介",
+        "这是博客的第一篇文章内容",
+        null,
+        0,
+        1,
+      ];
+      const res = await queryPool(insertArticleSql, insertArticleValues);
+      const articleId = res.insertId;
+      const tagRows = await queryPool(`select id from tags`);
+      for (const tr of tagRows) {
+        await queryPool(
+          `insert into article_tags(article_id, tag_id, created_at) values(?, ?, NOW())`,
+          [articleId, tr.id]
+        );
+      }
+    }
+
+    const [{ count: infoCount }] = await queryPool(
+      `select count(*) as count from user_info`
+    );
+    if (infoCount === 0) {
+      const adminRows = await queryPool(
+        `select id from users where name=? limit 1`,
+        ["admin"]
+      );
+      const authorId = adminRows.length > 0 ? adminRows[0].id : null;
+      await queryPool(
+        `insert into user_info(user_id, avatar, name, tagline, quote, mbti, mbti_intro, about, created_at) values(?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        [
+          authorId,
+          null,
+          "博主",
+          "热爱分享与记录",
+          "Stay hungry, stay foolish.",
+          "INTJ",
+          "独立思考、理性而富于战略。",
+          "这里是个人介绍。",
+        ]
+      );
+    }
+
+    const [{ count: diaryCount }] = await queryPool(
+      `select count(*) as count from diaries`
+    );
+    if (diaryCount === 0) {
+      const samples = [
+        [
+          "周六不平的早上",
+          "又是一个周末，其实我早就醒了，六点多，时间12点左右在睡觉。我觉得最近的睡眠都不好。不是因为入睡容易醒，而是醒后时间长。",
+          1,
+        ],
+        [
+          "平静时刻",
+          "窗内的风，树叶的纹理在窗内可见，随之后外的风，因为内外温差受到了些影响。室内的书籍，黑白的封面，黑色的直线。",
+          3,
+        ],
+        [
+          "被劫的睡眠",
+          "今天的时间，下午安抚，清醒在你眼前的时间，室内的小窗，树叶在外旋转合在心里飘动。晚上睡眠的时间只在昨天中午。那就是今天。",
+          10,
+        ],
+      ];
+      for (const [title, content, days] of samples) {
+        await queryPool(
+          `insert into diaries(title, content, state, diary_time, created_at) values(?, ?, 1, DATE_SUB(NOW(), INTERVAL ? DAY), DATE_SUB(NOW(), INTERVAL ? DAY))`,
+          [title, content, days, days]
+        );
+      }
+    }
+  } catch (error) {
+    console.error("初始化数据失败:", error);
     throw error;
   }
 };
@@ -205,11 +313,13 @@ const createTable = async () => {
 const init = async () => {
   try {
     await createTable();
-    console.log('数据库初始化完成');
-    // 初始化完成后关闭初始连接
+    await ensureColumns();
+    await createDefaultAdmin();
+    await seedInitialData();
+    console.log("数据库初始化完成");
     initialConnection.end();
   } catch (error) {
-    console.error('数据库初始化失败:', error);
+    console.error("数据库初始化失败:", error);
     process.exit(1); // 如果数据库初始化失败，退出应用
   }
 };
@@ -219,5 +329,5 @@ module.exports = {
   query: queryPool,
   createTable,
   init,
-  pool
+  pool,
 };

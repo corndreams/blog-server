@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的博客</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    :root {
+      --primary-color: #4f46e5;
+      --secondary-color: #10b981;
+      --dark-color: #1f2937;
+      --light-color: #f9fafb;
+      --gray-color: #9ca3af;
+      --border-radius: 8px;
+      --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    body {
+      background-color: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* 头部样式 */
+    header {
+      background-color: white;
+      box-shadow: var(--box-shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+    }
+
+    .logo {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+    }
+
+    .nav-links li {
+      margin-left: 25px;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--dark-color);
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary-color);
+    }
+
+    /* 主要内容区 */
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 30px;
+      margin: 30px 0;
+    }
+
+    /* 文章卡片 */
+    .article-card {
+      background: white;
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      box-shadow: var(--box-shadow);
+      margin-bottom: 25px;
+      transition: transform 0.3s;
+    }
+
+    .article-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .article-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+
+    .article-content {
+      padding: 20px;
+    }
+
+    .article-meta {
+      display: flex;
+      align-items: center;
+      color: var(--gray-color);
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+
+    .article-meta span {
+      margin-right: 15px;
+    }
+
+    .article-title {
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+      color: var(--dark-color);
+    }
+
+    .article-excerpt {
+      color: #666;
+      margin-bottom: 15px;
+    }
+
+    .article-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+    }
+
+    .read-more {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    /* 侧边栏 */
+    .sidebar-widget {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 20px;
+      margin-bottom: 25px;
+      box-shadow: var(--box-shadow);
+    }
+
+    .widget-title {
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+      color: var(--dark-color);
+    }
+
+    .category-list,
+    .popular-list {
+      list-style: none;
+    }
+
+    .category-list li,
+    .popular-list li {
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .category-list a,
+    .popular-list a {
+      text-decoration: none;
+      color: #555;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .category-list a:hover,
+    .popular-list a:hover {
+      color: var(--primary-color);
+    }
+
+    .tag-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .tag {
+      background: #f0f0f0;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      color: #666;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+
+    .tag:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    /* 页脚 */
+    footer {
+      background: var(--dark-color);
+      color: white;
+      padding: 40px 0;
+      margin-top: 50px;
+    }
+
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .footer-section {
+      flex: 1;
+    }
+
+    .footer-section h3 {
+      margin-bottom: 15px;
+      font-size: 1.2rem;
+    }
+
+    .footer-bottom {
+      text-align: center;
+      padding-top: 20px;
+      margin-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-content {
+        flex-direction: column;
+        gap: 30px;
+      }
+
+      .nav-links {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <!-- 头部 -->
+    <header>
+      <div class="container">
+        <div class="header-content">
+          <a href="#" class="logo">我的博客</a>
+          <ul class="nav-links">
+            <li><a href="#">首页</a></li>
+            <li><a href="#">分类</a></li>
+            <li><a href="#">归档</a></li>
+            <li><a href="#">关于</a></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <div class="container">
+      <div class="main-content">
+        <!-- 文章列表 -->
+        <div class="articles">
+          <div class="article-card" v-for="article in articles" :key="article.id">
+            <img :src="article.cover" :alt="article.title" class="article-image">
+            <div class="article-content">
+              <div class="article-meta">
+                <span><i class="far fa-calendar"></i> {{ article.date }}</span>
+                <span><i class="far fa-folder"></i> {{ article.category }}</span>
+                <span><i class="far fa-eye"></i> {{ article.views }} 阅读</span>
+              </div>
+              <h2 class="article-title">{{ article.title }}</h2>
+              <p class="article-excerpt">{{ article.excerpt }}</p>
+              <div class="article-footer">
+                <a :href="'#article/' + article.id" class="read-more">阅读更多 →</a>
+                <div class="tags">
+                  <span class="tag" v-for="tag in article.tags" :key="tag">{{ tag }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+          <!-- 搜索框 -->
+          <div class="sidebar-widget">
+            <div class="search-box">
+              <input type="text" placeholder="搜索文章..." v-model="searchTerm">
+              <button><i class="fas fa-search"></i></button>
+            </div>
+          </div>
+
+          <!-- 分类 -->
+          <div class="sidebar-widget">
+            <h3 class="widget-title">文章分类</h3>
+            <ul class="category-list">
+              <li v-for="category in categories" :key="category.id">
+                <a href="#">
+                  <span>{{ category.name }}</span>
+                  <span>({{ category.count }})</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 热门文章 -->
+          <div class="sidebar-widget">
+            <h3 class="widget-title">热门文章</h3>
+            <ul class="popular-list">
+              <li v-for="popular in popularArticles" :key="popular.id">
+                <a href="#">
+                  <span>{{ popular.title }}</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 标签云 -->
+          <div class="sidebar-widget">
+            <h3 class="widget-title">标签云</h3>
+            <div class="tag-cloud">
+              <a href="#" class="tag" v-for="tag in tags" :key="tag">#{{ tag }}</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer>
+      <div class="container">
+        <div class="footer-content">
+          <div class="footer-section">
+            <h3>关于博客</h3>
+            <p>分享技术心得与生活感悟的个人博客平台，记录成长轨迹。</p>
+          </div>
+          <div class="footer-section">
+            <h3>快速链接</h3>
+            <ul>
+              <li><a href="#">首页</a></li>
+              <li><a href="#">分类</a></li>
+              <li><a href="#">关于我</a></li>
+              <li><a href="#">联系方式</a></li>
+            </ul>
+          </div>
+          <div class="footer-section">
+            <h3>联系我</h3>
+            <p>Email: contact@myblog.com</p>
+            <div class="social-icons">
+              <a href="#"><i class="fab fa-github"></i></a>
+              <a href="#"><i class="fab fa-twitter"></i></a>
+              <a href="#"><i class="fab fa-linkedin"></i></a>
+            </div>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p>&copy; 2023 我的博客. 保留所有权利.</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const { createApp, ref } = Vue
+
+    createApp({
+      setup() {
+        const searchTerm = ref('')
+
+        const articles = ref([
+          {
+            id: 1,
+            title: 'Vue3 Composition API 完全指南',
+            date: '2023-10-15',
+            category: '前端开发',
+            views: 1250,
+            cover: 'https://via.placeholder.com/800x400/4f46e5/ffffff?text=Vue3',
+            excerpt: 'Vue3的Composition API提供了更灵活的组织组件逻辑的方式，本文将详细介绍其使用方法和最佳实践。',
+            tags: ['Vue', '前端', 'JavaScript']
+          },
+          {
+            id: 2,
+            title: 'Node.js性能优化实践',
+            date: '2023-10-10',
+            category: '后端开发',
+            views: 980,
+            cover: 'https://via.placeholder.com/800x400/10b981/ffffff?text=Node.js',
+            excerpt: '通过实际案例分享Node.js应用性能优化的多种技巧和策略，帮助你的应用运行更加高效。',
+            tags: ['Node.js', '性能优化', '后端']
+          },
+          {
+            id: 3,
+            title: 'MySQL索引原理与优化',
+            date: '2023-10-05',
+            category: '数据库',
+            views: 1560,
+            cover: 'https://via.placeholder.com/800x400/6366f1/ffffff?text=MySQL',
+            excerpt: '深入了解MySQL索引的工作原理，学习如何设计和优化索引以提升查询性能。',
+            tags: ['MySQL', '数据库', '优化']
+          }
+        ])
+
+        const categories = ref([
+          { id: 1, name: '前端开发', count: 12 },
+          { id: 2, name: '后端开发', count: 8 },
+          { id: 3, name: '数据库', count: 5 },
+          { id: 4, name: 'DevOps', count: 3 },
+          { id: 5, name: '生活随笔', count: 7 }
+        ])
+
+        const popularArticles = ref([
+          { id: 1, title: 'Vue3 Composition API 完全指南' },
+          { id: 2, title: 'MySQL索引原理与优化' },
+          { id: 3, title: 'Docker容器化部署实践' },
+          { id: 4, title: 'JavaScript异步编程详解' },
+          { id: 5, title: 'CSS Grid布局实战' }
+        ])
+
+        const tags = ref([
+          'Vue', 'React', 'Node.js', 'MySQL', 'MongoDB',
+          'Docker', 'JavaScript', 'CSS', 'HTML', '算法',
+          '架构', '微服务', '性能优化'
+        ])
+
+        return {
+          searchTerm,
+          articles,
+          categories,
+          popularArticles,
+          tags
+        }
+      }
+    }).mount('#app')
+  </script>
+</body>
+
+</html>
