@@ -59,4 +59,19 @@ router.post("/edit", verifyToken, async (req, res) => {
   }
 });
 
+router.delete("/:id", verifyToken, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!id) return res.send({ code: 400, msg: "无效链接ID" });
+    const result = await query(`delete from links where id=?`, [id]);
+    if (result && result.affectedRows > 0) {
+      res.send({ code: 200, msg: "删除成功" });
+    } else {
+      res.send({ code: 404, msg: "链接不存在" });
+    }
+  } catch (error) {
+    res.send({ code: 500, msg: "服务器错误" });
+  }
+});
+
 module.exports = router;
